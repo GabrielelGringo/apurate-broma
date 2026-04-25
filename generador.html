@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador de Broma — ¡APURATE!</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #1a0000, #000);
+    color: #fff;
+    min-height: 100vh;
+    padding: 20px;
+    display: flex; justify-content: center; align-items: flex-start;
+  }
+  .card {
+    background: #111;
+    border: 2px solid #ff0000;
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 500px; width: 100%;
+    box-shadow: 0 0 30px rgba(255,0,0,0.4);
+  }
+  h1 {
+    color: #ff1a1a;
+    text-align: center;
+    margin-bottom: 8px;
+    text-shadow: 0 0 10px #ff0000;
+  }
+  .sub { text-align: center; color: #aaa; margin-bottom: 25px; font-size: 14px; }
+  label {
+    display: block;
+    margin: 14px 0 6px;
+    font-weight: bold;
+    color: #ff6666;
+    font-size: 14px;
+  }
+  input, textarea {
+    width: 100%;
+    padding: 12px;
+    background: #000;
+    border: 1px solid #ff0000;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 16px;
+    font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 70px; }
+  input:focus, textarea:focus { outline: none; border-color: #fff; box-shadow: 0 0 10px #ff0000; }
+  button {
+    width: 100%;
+    margin-top: 20px;
+    padding: 14px;
+    background: #ff0000;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 17px;
+    font-weight: 900;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: 0.2s;
+  }
+  button:hover { background: #fff; color: #ff0000; }
+  button.wa { background: #25D366; margin-top: 10px; }
+  button.wa:hover { background: #fff; color: #25D366; }
+  button.copy { background: #444; margin-top: 10px; }
+  button.copy:hover { background: #fff; color: #000; }
+  .resultado {
+    margin-top: 25px;
+    padding: 15px;
+    background: #000;
+    border: 1px dashed #ff0000;
+    border-radius: 8px;
+    word-break: break-all;
+    font-family: monospace;
+    font-size: 13px;
+    color: #ff9999;
+    display: none;
+  }
+  .ok { color: #25D366; text-align: center; margin-top: 10px; font-weight: bold; display: none; }
+  .preview-btn {
+    display: block; text-align: center;
+    margin-top: 12px; padding: 10px;
+    background: #222; color: #ff6666;
+    border-radius: 8px; text-decoration: none;
+    border: 1px solid #ff0000;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>🚨 ¡APURATE! 🚨</h1>
+    <p class="sub">Generador de broma para WhatsApp</p>
+
+    <label>⏰ Hora objetivo (cuenta regresiva hacia)</label>
+    <input type="time" id="hora" value="19:00">
+
+    <label>💬 Mensaje (opcional)</label>
+    <textarea id="mensaje" placeholder="Ej: TENÉS QUE LLEGAR ANTES QUE CIERREN"></textarea>
+
+    <label>✍️ Firma (quién la manda)</label>
+    <input type="text" id="firma" placeholder="Ej: Gabriel">
+
+    <label>🔗 URL base (donde está subida la página)</label>
+    <input type="text" id="base" placeholder="https://tu-sitio.com/broma-apurate.html">
+
+    <button onclick="generar()">⚡ GENERAR LINK</button>
+
+    <div class="resultado" id="resultado"></div>
+    <div class="ok" id="ok"></div>
+
+    <button class="copy" id="btnCopy" style="display:none" onclick="copiar()">📋 COPIAR LINK</button>
+    <button class="wa" id="btnWA" style="display:none" onclick="enviarWA()">📱 ENVIAR POR WHATSAPP</button>
+    <a class="preview-btn" id="btnPrev" style="display:none" target="_blank">👁️ VER PREVIEW</a>
+  </div>
+
+<script>
+let linkFinal = '';
+
+function generar() {
+  const hora = document.getElementById('hora').value || '19:00';
+  const mensaje = document.getElementById('mensaje').value.trim();
+  const firma = document.getElementById('firma').value.trim();
+  let base = document.getElementById('base').value.trim();
+
+  if (!base) {
+    base = window.location.href.replace(/generador\.html.*$/, 'broma-apurate.html');
+  }
+
+  const params = [];
+  params.push('h=' + encodeURIComponent(hora));
+  if (mensaje) params.push('m=' + encodeURIComponent(mensaje));
+  if (firma) params.push('f=' + encodeURIComponent(firma));
+
+  linkFinal = base + '#' + params.join('&');
+
+  const r = document.getElementById('resultado');
+  r.textContent = linkFinal;
+  r.style.display = 'block';
+  document.getElementById('btnCopy').style.display = 'block';
+  document.getElementById('btnWA').style.display = 'block';
+  const prev = document.getElementById('btnPrev');
+  prev.href = linkFinal;
+  prev.style.display = 'block';
+}
+
+function copiar() {
+  navigator.clipboard.writeText(linkFinal).then(() => {
+    const ok = document.getElementById('ok');
+    ok.textContent = '✅ Copiado al portapapeles';
+    ok.style.display = 'block';
+    setTimeout(() => ok.style.display = 'none', 2500);
+  });
+}
+
+function enviarWA() {
+  const firma = document.getElementById('firma').value.trim();
+  const texto = `🚨 URGENTE 🚨\n\n${firma ? firma + ' te manda esto:\n' : ''}${linkFinal}`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
+}
+</script>
+</body>
+</html>

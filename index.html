@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>⚠️ URGENTE ⚠️</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; min-height: 100%; overflow-x: hidden;
+    background: #000;
+    font-family: 'Courier New', monospace;
+    user-select: none;
+  }
+  body {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 100vh;
+    animation: flashBg 0.6s infinite;
+    text-align: center;
+    padding: 20px;
+  }
+  @keyframes flashBg {
+    0%, 49% { background: #000; }
+    50%, 100% { background: #2a0000; }
+  }
+  .alarma {
+    font-size: 14vw;
+    font-weight: 900;
+    color: #ff0000;
+    text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000;
+    letter-spacing: 4px;
+    animation: shake 0.15s infinite, pulseColor 0.5s infinite;
+    margin-bottom: 10px;
+  }
+  @keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    25% { transform: translate(-2px, 1px) rotate(-1deg); }
+    50% { transform: translate(2px, -1px) rotate(1deg); }
+    75% { transform: translate(-1px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+  }
+  @keyframes pulseColor {
+    0%, 100% { color: #ff0000; }
+    50% { color: #ffffff; }
+  }
+  .crono {
+    font-size: 18vw;
+    font-weight: 900;
+    color: #ff1a1a;
+    text-shadow: 0 0 30px #ff0000, 0 0 60px #ff0000;
+    letter-spacing: 2px;
+    margin: 15px 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .sub {
+    font-size: 5.5vw;
+    color: #ff0000;
+    font-weight: bold;
+    text-shadow: 0 0 10px #ff0000;
+    margin-top: 8px;
+    animation: blink 0.4s infinite;
+  }
+  .mensaje {
+    font-size: 5vw;
+    color: #fff;
+    font-weight: bold;
+    margin-top: 18px;
+    padding: 12px 18px;
+    border: 2px solid #ff0000;
+    border-radius: 8px;
+    background: rgba(255,0,0,0.1);
+    max-width: 90%;
+    text-shadow: 0 0 8px #ff0000;
+  }
+  .firma {
+    font-size: 4.5vw;
+    color: #ffaaaa;
+    margin-top: 20px;
+    font-style: italic;
+  }
+  @keyframes blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0.3; }
+  }
+  .sirena {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 8px;
+    animation: sirenaColor 0.3s infinite;
+    z-index: 10;
+  }
+  .sirena.bot { top: auto; bottom: 0; }
+  @keyframes sirenaColor {
+    0%, 49% { background: #ff0000; box-shadow: 0 0 20px #ff0000; }
+    50%, 100% { background: #ffffff; box-shadow: 0 0 20px #ffffff; }
+  }
+  .warn { font-size: 8vw; margin-bottom: 5px; }
+  #start {
+    position: fixed; inset: 0;
+    background: #000;
+    display: flex; align-items: center; justify-content: center;
+    color: #ff0000; font-size: 8vw; font-weight: 900;
+    z-index: 99; cursor: pointer;
+    text-shadow: 0 0 20px #ff0000;
+    text-align: center; padding: 20px;
+  }
+</style>
+</head>
+<body>
+  <div id="start" onclick="iniciar()">⚠️<br>TOCÁ PARA<br>ABRIR<br>⚠️</div>
+  <div class="sirena"></div>
+  <div class="warn">🚨 ⚠️ 🚨</div>
+  <div class="alarma">¡APURATE!</div>
+  <div class="crono" id="crono">--:--:--</div>
+  <div class="sub" id="sub">FALTAN PARA LAS 19:00</div>
+  <div class="mensaje" id="mensaje" style="display:none"></div>
+  <div class="firma" id="firma" style="display:none"></div>
+  <div class="sirena bot"></div>
+
+<script>
+let audioCtx = null;
+let sirenaOn = false;
+let horaObjH = 19, horaObjM = 0;
+
+function getParams() {
+  const hash = window.location.hash.substring(1);
+  const params = {};
+  hash.split('&').forEach(p => {
+    const [k, v] = p.split('=');
+    if (k) params[k] = decodeURIComponent(v || '');
+  });
+  return params;
+}
+
+function aplicarParams() {
+  const p = getParams();
+  if (p.h) {
+    const [hh, mm] = p.h.split(':').map(Number);
+    if (!isNaN(hh)) horaObjH = hh;
+    if (!isNaN(mm)) horaObjM = mm;
+    const pad = n => String(n).padStart(2, '0');
+    document.getElementById('sub').textContent = `FALTAN PARA LAS ${pad(horaObjH)}:${pad(horaObjM)}`;
+  }
+  if (p.m) {
+    const el = document.getElementById('mensaje');
+    el.textContent = p.m;
+    el.style.display = 'block';
+  }
+  if (p.f) {
+    const el = document.getElementById('firma');
+    el.textContent = '— ' + p.f;
+    el.style.display = 'block';
+  }
+}
+
+function beep(freq, dur) {
+  if (!audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  g.gain.setValueAtTime(0.3, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
+  o.start();
+  o.stop(audioCtx.currentTime + dur);
+}
+
+function sirena() {
+  if (!sirenaOn) return;
+  beep(800, 0.25);
+  setTimeout(() => beep(500, 0.25), 250);
+  setTimeout(sirena, 600);
+}
+
+function vibrar() {
+  if (navigator.vibrate) {
+    navigator.vibrate([300, 100, 300, 100, 300, 100, 600]);
+    setTimeout(vibrar, 2000);
+  }
+}
+
+function actualizar() {
+  const ahora = new Date();
+  const objetivo = new Date();
+  objetivo.setHours(horaObjH, horaObjM, 0, 0);
+  let diff = objetivo - ahora;
+  if (diff < 0) diff += 24 * 60 * 60 * 1000;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  const pad = n => String(n).padStart(2, '0');
+  document.getElementById('crono').textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
+function iniciar() {
+  document.getElementById('start').style.display = 'none';
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    sirenaOn = true;
+    sirena();
+  } catch(e) {}
+  vibrar();
+  actualizar();
+  setInterval(actualizar, 1000);
+  if (document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen().catch(()=>{});
+  }
+}
+
+aplicarParams();
+</script>
+</body>
+</html>
